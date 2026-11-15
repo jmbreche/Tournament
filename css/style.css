@@ -24,6 +24,11 @@ h2 { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }
 .count-pill { background: #eef1ff; border-radius: 99px; color: var(--blue); font-size: .78rem; font-weight: 700; padding: 8px 11px; white-space: nowrap; }
 textarea { border: 1px solid var(--line); border-radius: 12px; display: block; margin: 24px 0 18px; min-height: 160px; outline: 0; padding: 14px; resize: vertical; width: 100%; }
 textarea:focus, input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px #e9edff; outline: 0; }
+.competitor-input { margin: 24px 0 18px; position: relative; }
+.competitor-input textarea { margin: 0; padding-right: 52px; }
+.clear-icon { align-items: center; background: transparent; border: 0; color: var(--muted); display: flex; height: 32px; justify-content: center; padding: 5px; position: absolute; right: 8px; top: 8px; width: 32px; }
+.clear-icon svg { fill: none; height: 20px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; width: 20px; }
+.clear-icon:hover { color: var(--ink); }
 .controls { align-items: end; display: flex; flex-wrap: wrap; gap: 12px; }
 .controls label { color: var(--muted); display: grid; font-size: .75rem; font-weight: 700; gap: 6px; }
 select, input[type="number"] { background: white; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); padding: 9px; }
@@ -34,8 +39,14 @@ select, input[type="number"] { background: white; border: 1px solid var(--line);
 .primary-button:hover { background: var(--blue-dark); }
 .secondary-button { background: white; border: 1px solid var(--line); color: var(--muted); text-decoration: none; }
 .full-width { margin-top: 20px; width: 100%; }
+.blacklist-editor { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 18px; }
+.editor-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 10px; }
+.blacklist-row { align-items: center; border-bottom: 1px solid var(--line); display: flex; font-size: .82rem; gap: 10px; justify-content: space-between; padding: 9px 0; }
+.blacklist-remove { background: transparent; border: 0; color: var(--muted); font-size: .75rem; padding: 4px; }
+.blacklist-remove:hover { color: #c65353; }
 .results { margin-top: 34px; }
 .text-button { background: transparent; border: 0; color: var(--muted); font-weight: 700; padding: 8px 0; }
+.text-button:hover { color: var(--ink); }
 .icon-button { background: white; border: 1px solid var(--line); border-radius: 9px; color: var(--blue); font-size: 1.35rem; height: 40px; line-height: 1; width: 40px; }
 .icon-button:hover { background: var(--soft); }
 .match-queue { display: grid; gap: 10px; margin: 18px auto 0; max-height: min(72vh, 680px); max-width: 520px; min-width: 0; overflow: hidden; scrollbar-width: none; }
@@ -52,18 +63,23 @@ select, input[type="number"] { background: white; border: 1px solid var(--line);
 .team-button.stacked-team .team-plus { display: block; }
 .team-button.stacked-team .team-player { line-height: 1.2; }
 .team-button.stacked-team .team-plus { line-height: 1; }
+.team-choice { align-items: center; display: flex; gap: 5px; min-width: 0; }
+.team-choice .team-button { flex: 1; }
+.blacklist-button { background: transparent; border: 0; color: var(--muted); flex: 0 0 24px; font-size: 1.1rem; height: 28px; padding: 0; }
+.blacklist-button:hover { color: #c65353; }
 .team-button:not(:disabled):hover { background: #eef1ff; border-color: var(--blue); }
 .team-button:disabled { cursor: default; opacity: .6; }
 .team-button.winner { background: #e6f7f1; border-color: #a3e0cc; color: var(--green); }
 .team-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-top: 18px; }
 .team-card { align-items: center; background: white; border: 1px solid var(--line); border-radius: 10px; display: flex; font-size: clamp(.62rem, 2.2vw, .9rem); font-weight: 700; gap: 10px; justify-content: center; line-height: 1.15; min-width: 0; overflow: hidden; padding: 14px; text-align: center; }
-.team-card .team-player { min-width: 0; white-space: nowrap; }
-.team-card.stacked-team { display: flex; flex-direction: column !important; gap: 3px; justify-content: center; }
-.team-card.stacked-team .list-number { margin-bottom: 4px; }
-.team-card.stacked-team .team-player,
-.team-card.stacked-team .team-plus { display: block; }
-.team-card.stacked-team .team-player { line-height: 1.2; }
-.team-card.stacked-team .team-plus { line-height: 1; }
+.team-label { align-items: center; display: flex; gap: .35em; min-width: 0; }
+.team-label .team-player { min-width: 0; white-space: nowrap; }
+.team-label.stacked-team { flex-direction: column; gap: 3px; justify-content: center; }
+.team-label.stacked-team .list-number { margin-bottom: 4px; }
+.team-label.stacked-team .team-player,
+.team-label.stacked-team .team-plus { display: block; }
+.team-label.stacked-team .team-player { line-height: 1.2; }
+.team-label.stacked-team .team-plus { line-height: 1; }
 .list-number { align-items: center; background: #eef1ff; border-radius: 50%; color: var(--blue); display: flex; flex: 0 0 25px; font-size: .75rem; height: 25px; justify-content: center; }
 .bracket { --bracket-height: 560px; align-items: stretch; display: flex; gap: 14px; min-height: var(--bracket-height); overflow-x: auto; padding: 20px 2px; }
 .bracket-round { display: flex; flex: 0 0 210px; flex-direction: column; gap: 16px; justify-content: space-around; min-height: var(--bracket-height); min-width: 0; padding-top: 28px; position: relative; width: min(210px, calc(100vw - 56px)); }

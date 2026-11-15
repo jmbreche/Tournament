@@ -16,7 +16,16 @@
         <span class="count-pill" id="competitorCount">0 players</span>
       </div>
       <label class="sr-only" for="competitors">Player names</label>
-      <textarea id="competitors" rows="8" placeholder="One player per line or comma-separated"></textarea>
+      <div class="competitor-input">
+        <textarea id="competitors" rows="8" placeholder="One player per line or comma-separated"></textarea>
+        <button class="clear-icon" id="clearCompetitorsButton" type="button" aria-label="Clear competitors" title="Clear competitors">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m4 15 8-8a2 2 0 0 1 3 0l4 4a2 2 0 0 1 0 3l-5 5H7l-3-3a2 2 0 0 1 0-1Z"></path>
+            <path d="m10 9 5 5"></path>
+            <path d="M14 19h7"></path>
+          </svg>
+        </button>
+      </div>
       <div class="controls">
         <label>Mode
           <select id="mode">
@@ -28,6 +37,14 @@
         </label>
       </div>
       <button class="primary-button full-width" id="generateButton" type="button">Generate</button>
+      <button class="text-button full-width" id="editBlacklistButton" type="button">Edit blacklist</button>
+      <section class="blacklist-editor" id="blacklistEditor" hidden>
+        <div class="editor-heading">
+          <h2>Blacklisted teams</h2>
+          <button class="text-button" id="closeBlacklistButton" type="button">Close</button>
+        </div>
+        <div id="blacklistList"></div>
+      </section>
     </section>
 
     <section class="results" id="results" hidden>

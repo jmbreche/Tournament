@@ -7,18 +7,101 @@
   const output = $("#output");
   const modeInput = $("#mode");
   const toast = $("#toast");
+  const blacklistKey = "tournament-blacklisted-teams";
+  const competitorsKey = "tournament-competitors";
+  const blacklistLifetime = 24 * 60 * 60 * 1000;
+  const competitorsLifetime = 10 * 24 * 60 * 60 * 1000;
   const bufferSize = 8;
   let state = null;
   let toastTimer;
 
   const players = () => input.value.split(/[\n,]+/).map((name) => name.trim()).filter(Boolean)
     .filter((name, index, list) => list.indexOf(name) === index);
+  const loadCompetitors = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(competitorsKey) || "null");
+      if(saved && Array.isArray(saved.players) && Number(saved.expiresAt) > Date.now()) {
+        input.value = saved.players.join("\n");
+      } else {
+        localStorage.removeItem(competitorsKey);
+      }
+    } catch(error) {
+      localStorage.removeItem(competitorsKey);
+    }
+  };
+  const saveCompetitors = (list) => {
+    localStorage.setItem(competitorsKey, JSON.stringify({
+      players: list,
+      expiresAt: Date.now() + competitorsLifetime
+    }));
+  };
   const showToast = (message) => {
     toast.textContent = message;
     toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
   };
+  const blacklistPairs = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(blacklistKey) || "[]");
+      const now = Date.now();
+      const entries = Array.isArray(saved)
+        ? saved.map((entry) => Array.isArray(entry)
+          ? { pair: entry, expiresAt: now + blacklistLifetime }
+          : entry)
+        : [];
+      const active = entries.filter((entry) =>
+        entry && Array.isArray(entry.pair) && entry.pair.length === 2
+        && Number(entry.expiresAt) > now
+      );
+      localStorage.setItem(blacklistKey, JSON.stringify(active));
+      return active.map((entry) => entry.pair);
+    } catch(error) {
+      return [];
+    }
+  };
+  const teamKey = (team) => [...team].sort().join("::");
+  const blacklistTeam = (team) => {
+    const entries = blacklistEntries().filter((entry) => teamKey(entry.pair) !== teamKey(team));
+    entries.push({ pair: [...team], expiresAt: Date.now() + blacklistLifetime });
+    localStorage.setItem(blacklistKey, JSON.stringify(entries));
+    showToast(`${teamLabel(team)} blacklisted`);
+    generate();
+  };
+  const blacklistEntries = () => {
+    blacklistPairs();
+    try {
+      return JSON.parse(localStorage.getItem(blacklistKey) || "[]");
+    } catch(error) {
+      return [];
+    }
+  };
+  const removeBlacklist = (team) => {
+    const entries = blacklistEntries().filter((entry) => teamKey(entry.pair) !== teamKey(team));
+    localStorage.setItem(blacklistKey, JSON.stringify(entries));
+    renderBlacklistEditor();
+  };
+  function renderBlacklistEditor() {
+    const list = $("#blacklistList");
+    list.innerHTML = "";
+    const entries = blacklistEntries();
+    if(!entries.length) {
+      list.textContent = "No teams are blacklisted.";
+      return;
+    }
+    entries.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "blacklist-row";
+      row.textContent = `${teamLabel(entry.pair)} (${Math.max(1, Math.ceil((entry.expiresAt - Date.now()) / 3600000))}h)`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "blacklist-remove";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", () => removeBlacklist(entry.pair));
+      row.append(remove);
+      list.append(row);
+    });
+  }
   const teamLabel = (team) => team.join(" + ");
   const stackedTeam = (team) => team.some((player) => player.length > 13)
     || team.join("").length >= 17;
@@ -47,14 +130,45 @@
   }
 
   function makeTeams() {
-    return new Teams(players());
+    return new Teams(players(), blacklistPairs());
   }
 
   function teamCard(team, className="") {
     const card = document.createElement("div");
     card.className = `team-card ${className}`.trim();
-    renderTeamLabel(card, team);
+    const label = document.createElement("div");
+    label.className = "team-label";
+    renderTeamLabel(label, team);
+    card.append(label);
+    card.append(blacklistButton(team));
     return card;
+  }
+
+  function blacklistButton(team) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "blacklist-button";
+    button.textContent = "⚑";
+    button.title = "Blacklist this team";
+    button.setAttribute("aria-label", `Blacklist ${teamLabel(team)}`);
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      blacklistTeam(team);
+    });
+    return button;
+  }
+
+  function teamChoice(team, selected, onWinner, disabled) {
+    const entry = document.createElement("div");
+    entry.className = "team-choice";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `team-button${selected ? " winner" : ""}`;
+    renderTeamLabel(button, team);
+    button.disabled = disabled;
+    button.addEventListener("click", () => onWinner(team, button));
+    entry.append(button, blacklistButton(team));
+    return entry;
   }
 
   function matchupCard(match, active, onWinner, winner = null) {
@@ -65,13 +179,12 @@
       textContent: active ? "Current match" : "Upcoming"
     }));
     match.forEach((team) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = `team-button${sameTeam(winner, team) ? " winner" : ""}`;
-      renderTeamLabel(button, team);
-      button.disabled = !active;
-      button.addEventListener("click", () => onWinner(team, card));
-      card.append(button);
+      card.append(teamChoice(
+        team,
+        sameTeam(winner, team),
+        (selectedTeam) => onWinner(selectedTeam, card),
+        !active
+      ));
     });
     return card;
   }
@@ -279,13 +392,12 @@
         card.className = "match-card bracket-match";
         [match.a, match.b].forEach((team) => {
           if(!team) return;
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = `team-button${match.winner === team ? " winner" : ""}`;
-          renderTeamLabel(button, team);
-          button.disabled = !(match.a && match.b) || Boolean(match.winner && match.winner !== team);
-          button.addEventListener("click", () => selectBracketWinner(roundIndex, matchIndex, team));
-          card.append(button);
+          card.append(teamChoice(
+            team,
+            sameTeam(match.winner, team),
+            () => selectBracketWinner(roundIndex, matchIndex, team),
+            !(match.a && match.b) || Boolean(match.winner && !sameTeam(match.winner, team))
+          ));
         });
         if(!match.a && !match.b) card.classList.add("waiting");
         column.append(card);
@@ -317,6 +429,7 @@
       return;
     }
 
+    saveCompetitors(list);
     const teams = makeTeams();
     const matches = new Matches(teams);
     const mode = modeInput.value;
@@ -338,9 +451,23 @@
   input.addEventListener("input", updateCount);
   $("#generateButton").addEventListener("click", generate);
   $("#regenerateButton").addEventListener("click", generate);
+  $("#clearCompetitorsButton").addEventListener("click", () => {
+    input.value = "";
+    localStorage.removeItem(competitorsKey);
+    updateCount();
+    showToast("Competitors cleared");
+  });
+  $("#editBlacklistButton").addEventListener("click", () => {
+    renderBlacklistEditor();
+    $("#blacklistEditor").hidden = false;
+  });
+  $("#closeBlacklistButton").addEventListener("click", () => {
+    $("#blacklistEditor").hidden = true;
+  });
   $("#newButton").addEventListener("click", () => {
     results.hidden = true;
     setup.hidden = false;
   });
+  loadCompetitors();
   updateCount();
 })();
